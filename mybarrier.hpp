@@ -6,6 +6,12 @@
 #include <vector>
 #include <stdio.h>
 #include <atomic>
+#ifdef WITH_CDS
+#include <threads.h>
+#include <model-assert.h>
+#else
+#define MODEL_ASSERT(x) x
+#endif
 class Barrier {
 public:
     virtual void await(int thread_id) = 0;
@@ -13,45 +19,43 @@ public:
 
 class StaticTreeBarrier: public Barrier {
     class Node {
-        StaticTreeBarrier* tree;
-        std::atomic<int> count;
-        int children;
+        std::atomic<int> count; // will be changed by other thread and read by local thread
+        const int children;
         Node* parent;
-        bool threadSense; // volatile?
+        StaticTreeBarrier* tree;
+        bool threadSense; // thread local, don't have to be visible to other thread
     public:
-        Node(StaticTreeBarrier* tree, int c, Node* p = nullptr): parent(p){
+        Node(StaticTreeBarrier* tree, int c, Node* p = nullptr):children(c), parent(p){
             this->tree = tree;
             count = c;
-            children = c;
-            threadSense = !tree->globalSense;
+            threadSense = true;
         }
         void await() {
             while(count.load(std::memory_order_acquire) > 0) {};
             count.store(children, std::memory_order_relaxed);
             if(parent != nullptr) {
                 parent->childDone();
-                while(threadSense != tree->globalSense){};
+                while(threadSense != (tree->globalSense.load(std::memory_order_acquire))){};
             } else {
-                tree->globalSense = !tree->globalSense;
+                int a = tree->globalSense.load(std::memory_order_relaxed);
+                tree->globalSense.store(!a, std::memory_order_release);
             }
             threadSense = !threadSense;
         }
         void childDone() {
-            count.fetch_sub(1, std::memory_order_relaxed);
+            count.fetch_sub(1, std::memory_order_release);
         }
     };
 
-    int radix, size;
-    bool globalSense;
+    const int radix, size;
+    std::atomic<bool> globalSense;
     std::vector<Node*> nodes;
 public:
-    StaticTreeBarrier(int size, int radix) {
-        // MODEL_ASSERT(size > 0);
-        this->radix = radix;
+    StaticTreeBarrier(int size, int radix):radix(radix), size(size) {
+        MODEL_ASSERT(size > 0);
         globalSense = false;
-        this->size = size;
         build();
-        // MODEL_ASSERT(nodes.size() == this->size);
+        MODEL_ASSERT(nodes.size() == this->size);
     }
 
     void build() { // BFS building
