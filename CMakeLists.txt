@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.6)
+PROJECT(barrier)
+SET(CMAKE_CXX_STANDARD 11)
+#INCLUDE_DIRECTORIES("/home/mingyi/codework/model-checker/include")
+#LINK_DIRECTORIES("/home/mingyi/codework/model-checker")
+ADD_EXECUTABLE(barrier main.cpp mybarrier.hpp)
+TARGET_LINK_LIBRARIES(barrier pthread)
+#TARGET_LINK_LIBRARIES(barrier "model")
