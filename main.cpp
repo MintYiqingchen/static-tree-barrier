@@ -65,6 +65,7 @@ int main(int argc, char **argv) {
         barrier->await(0);
         target = 1-target;
     }
+    printf("pthread test passed!");
     pthread_exit(0);
 }
 #endif

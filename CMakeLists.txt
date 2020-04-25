@@ -1,14 +1,17 @@
 cmake_minimum_required(VERSION 2.8)
 PROJECT(barrier)
 SET(CMAKE_CXX_STANDARD 11)
-
-#
-#ADD_DEFINITIONS(-DWITH_CDS)
-#INCLUDE_DIRECTORIES("/home/mintyi/codework/model-checker/include")
-#LINK_DIRECTORIES("/home/mintyi/codework/model-checker")
+MESSAGE(“MODEL_CHK_PATH=${MODEL_CHK_PATH}”)
+IF(DEFINED MODEL_CHK_PATH)
+    ADD_DEFINITIONS(-DWITH_CDS)
+    INCLUDE_DIRECTORIES("${MODEL_CHK_PATH}/include")
+    LINK_DIRECTORIES("${MODEL_CHK_PATH}")
+ENDIF()
 
 ADD_EXECUTABLE(barrier main.cpp mybarrier.hpp)
-#TARGET_LINK_LIBRARIES(barrier "model")
-
-TARGET_LINK_LIBRARIES(barrier pthread)
+IF(DEFINED MODEL_CHK_PATH)
+    TARGET_LINK_LIBRARIES(barrier "model")
+ELSE()
+    TARGET_LINK_LIBRARIES(barrier pthread)
+ENDIF()
 
