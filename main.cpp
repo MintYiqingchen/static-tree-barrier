@@ -8,10 +8,11 @@
 
 constexpr int THREAD_NUM = 3;
 constexpr int RADIX = 2;
-int array[THREAD_NUM];
+int array[THREAD_NUM]{0};
 
 struct RunParams {
     int thread_id;
+    int target;
     StaticTreeBarrier* barrier;
 };
 
@@ -25,7 +26,8 @@ void runnable(void* args) {
 void* runnable(void* args) {
     RunParams* param = (RunParams*)args;
     param->barrier->await(param->thread_id);
-    printf("Hello, I'm thread %d\n", param->thread_id);
+    if(array[param->thread_id] != param->target)
+        printf("barrier failure detected in runnable\n");
 }
 #endif
 #ifdef WITH_CDS
@@ -51,12 +53,18 @@ int main(int argc, char **argv) {
     StaticTreeBarrier* barrier = new StaticTreeBarrier(THREAD_NUM, 2);
     RunParams params[THREAD_NUM];
     pthread_t threads[THREAD_NUM];
-    for(int i = 1; i < THREAD_NUM; ++ i){
-        params[i].thread_id = i;
-        params[i].barrier = barrier;
-        pthread_create(&threads[i], nullptr, runnable, (void*)&params[i]);
+    for(int j = 0; j < 10000; ++ j) {
+        int target = 1;
+        for (int i = 1; i < THREAD_NUM; ++i) {
+            params[i].thread_id = i;
+            params[i].barrier = barrier;
+            params[i].target = target;
+            pthread_create(&threads[i], nullptr, runnable, (void *) &params[i]);
+            array[i] = target;
+        }
+        barrier->await(0);
+        target = 1-target;
     }
-    barrier->await(0);
     pthread_exit(0);
 }
 #endif
