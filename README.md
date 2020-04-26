@@ -31,12 +31,13 @@ take care of the calculation of `children`.
 
 Example:
 1. #thread = 4, radix = 2
+```
       n0
      / \
     n1  n2
    /
   n3
-
+```
 n0.children = 2, n1.children = 1, n2.children = 0, n3.children = 0
 
 ### Synchronization between threads
